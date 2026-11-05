@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract LendingPool{
+    using SafeERC20 for IERC20;
     address immutable owner;
     struct TokenInfo{
         bool isSupported;
@@ -29,14 +32,11 @@ contract LendingPool{
         _;
     }
 
-    function depositETH(address _ETH) public payable {
-        TokenInfo memory t = token[_ETH];
-        require(t.isSupported,"Token Not Supported");
-        require(t.depositAllowed,"Deposit Not Allowed For This Token");
-        require(msg.value>= 0 ether,"Value Must Be Greater Than 0 ETH");
-        deposits[msg.sender][_ETH] += msg.value;
-        totalDeposits[_ETH] += msg.value;
-        emit TokenDeposited(msg.sender, _ETH, msg.value);
+    function depositETH() external payable {
+        require(msg.value>0 ether,"Amount Must Be Greater Than 0 ETH");
+        deposits[msg.sender][address(0)] += msg.value;
+        totalDeposits[address(0)] += msg.value;
+        emit TokenDeposited(msg.sender, address(0), msg.value);
     }
     function deposit(address _token, uint _amount) external {
         require(_amount>0,"Amount Must Be Greater Than 0");
@@ -44,12 +44,27 @@ contract LendingPool{
         TokenInfo memory t = token[_token];
         require(t.isSupported,"Token Not SUpported");
         require(t.depositAllowed,"No Deposit Allowed For This Token");
+        IERC20(_token).safeTransferFrom(msg.sender,address(this),_amount);
         deposits[msg.sender][_token] += _amount;
         totalDeposits[_token] += _amount;
         emit TokenDeposited(msg.sender, _token, _amount);
-
     }
 
+    function withdrawETH(uint _amount) external {
+        require(deposits[msg.sender][address(0)]>0,"Insufficient Balance");
+        require(totalDeposits[address(0)]>_amount,"Insuffieicnt Liquidity");
+        deposits[msg.sender][address(0)] -= _amount;
+        totalDeposits[address(0)] -= _amount;
+        (bool success,) = payable(msg.sender).call{value: _amount}("");
+        require(success,"Transaction Failed Due To Unexpected Error");
+    }
+    function withdrawToken(address _token, uint _amount) external {
+        require(deposits[msg.sender][_token]>0,"Insufficient Balance");
+        require(totalDeposits[_token]>_amount,"Insuffieicnt Liquidity");
+        deposits[msg.sender][_token] -= _amount;
+        totalDeposits[_token] -= _amount;
+        IERC20(_token).safeTransfer(msg.sender,_amount);
+    }
     function addToken(address _token) public onlyOwner{
         require(!token[_token].isSupported,"Token Already Added");
         token[_token] = TokenInfo(true,true,true);
