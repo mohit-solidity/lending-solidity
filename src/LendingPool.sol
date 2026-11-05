@@ -22,6 +22,7 @@ contract LendingPool{
     event DepositStatusChanged(address indexed _token, bool status);
     event WithdrawStatusChanged(address indexed _token, bool status);
     event TokenDeposited(address indexed user, address indexed token, uint amount);
+    event TokenWithdrawed(address indexed user, address indexed token, uint amount);
 
     constructor(){
         msg.sender==owner;
@@ -51,19 +52,23 @@ contract LendingPool{
     }
 
     function withdrawETH(uint _amount) external {
+        require(_amount>0,"Amount Must Be Greater Than 0");
         require(deposits[msg.sender][address(0)]>0,"Insufficient Balance");
         require(totalDeposits[address(0)]>_amount,"Insuffieicnt Liquidity");
         deposits[msg.sender][address(0)] -= _amount;
         totalDeposits[address(0)] -= _amount;
         (bool success,) = payable(msg.sender).call{value: _amount}("");
-        require(success,"Transaction Failed Due To Unexpected Error");
+        require(success,"Transaction Failed Due To UnExpected Error");
+        emit TokenWithdrawed(msg.sender, address(0), _amount);
     }
     function withdrawToken(address _token, uint _amount) external {
+        require(_amount>0,"Amount Must Be Greater Than 0");
         require(deposits[msg.sender][_token]>0,"Insufficient Balance");
         require(totalDeposits[_token]>_amount,"Insuffieicnt Liquidity");
         deposits[msg.sender][_token] -= _amount;
         totalDeposits[_token] -= _amount;
-        IERC20(_token).safeTransfer(msg.sender,_amount);
+        IERC20(_token).safeTransfer(msg.sender, _amount);
+        emit TokenWithdrawed(msg.sender, _token, _amount);
     }
     function addToken(address _token) public onlyOwner{
         require(!token[_token].isSupported,"Token Already Added");
