@@ -14,8 +14,8 @@ contract LendingPool{
     }
 
     mapping(address=>TokenInfo) token;
-    mapping(address=>mapping(address=>uint)) deposits;
-    mapping(address=>uint) totalDeposits;
+    mapping(address=>mapping(address=>uint)) public deposits;
+    mapping(address=>uint) public totalDeposits;
 
     event TokenAdded(address indexed _token);
     event TokenRemoved(address indexed _token);
@@ -25,7 +25,7 @@ contract LendingPool{
     event TokenWithdrawed(address indexed user, address indexed token, uint amount);
 
     constructor(){
-        msg.sender==owner;
+        owner=msg.sender;
     }
 
     modifier onlyOwner(){
