@@ -52,6 +52,19 @@ contract LendingPoolTest is Test {
         uint totalDeposits = lp.totalDeposits(address(mints));
         console.log(totalDeposits);
         assertEq(totalDeposits,_amount);
-
+    }
+    function testFuzz_UserWithdrawETH(uint _amount) public{
+        vm.assume(_amount>0);
+        vm.deal(user, _amount);
+        vm.prank(user);
+        lp.depositETH{value:_amount}();
+        uint deposit = lp.deposits(user,address(0));
+        console.log("Initial deposit : ",deposit);
+        vm.expectEmit(true, true, false, true);
+        emit LendingPool.TokenWithdrawed(user, address(0),_amount);
+        vm.prank(user);
+        lp.withdrawETH(_amount);
+        deposit = lp.deposits(user,address(0));
+        console.log("After Withdrawing Deposit : ", deposit);
     }
 }
