@@ -13,7 +13,7 @@ contract LendingPool{
         bool borrowingAllowed;
     }
 
-    mapping(address=>TokenInfo) token;
+    mapping(address=>TokenInfo)public  token;
     mapping(address=>mapping(address=>uint)) public deposits;
     mapping(address=>uint) public totalDeposits;
 
@@ -39,11 +39,11 @@ contract LendingPool{
         totalDeposits[address(0)] += msg.value;
         emit TokenDeposited(msg.sender, address(0), msg.value);
     }
-    function deposit(address _token, uint _amount) external {
+    function depositToken(address _token, uint _amount) external {
         require(_amount>0,"Amount Must Be Greater Than 0");
         require(_token!=address(0),"Invalid Adderss");
         TokenInfo memory t = token[_token];
-        require(t.isSupported,"Token Not SUpported");
+        require(t.isSupported,"Token Not Supported");
         require(t.depositAllowed,"No Deposit Allowed For This Token");
         IERC20(_token).safeTransferFrom(msg.sender,address(this),_amount);
         deposits[msg.sender][_token] += _amount;
@@ -53,8 +53,8 @@ contract LendingPool{
 
     function withdrawETH(uint _amount) external {
         require(_amount>0,"Amount Must Be Greater Than 0");
-        require(deposits[msg.sender][address(0)]>0,"Insufficient Balance");
-        require(totalDeposits[address(0)]>_amount,"Insuffieicnt Liquidity");
+        require(deposits[msg.sender][address(0)]>=0,"Insufficient Balance");
+        require(totalDeposits[address(0)]>=_amount,"Insuffieicnt Liquidity");
         deposits[msg.sender][address(0)] -= _amount;
         totalDeposits[address(0)] -= _amount;
         (bool success,) = payable(msg.sender).call{value: _amount}("");
@@ -63,8 +63,8 @@ contract LendingPool{
     }
     function withdrawToken(address _token, uint _amount) external {
         require(_amount>0,"Amount Must Be Greater Than 0");
-        require(deposits[msg.sender][_token]>0,"Insufficient Balance");
-        require(totalDeposits[_token]>_amount,"Insuffieicnt Liquidity");
+        require(deposits[msg.sender][_token]>=0,"Insufficient Balance");
+        require(totalDeposits[_token]>=_amount,"Insuffieicnt Liquidity");
         deposits[msg.sender][_token] -= _amount;
         totalDeposits[_token] -= _amount;
         IERC20(_token).safeTransfer(msg.sender, _amount);
@@ -78,7 +78,7 @@ contract LendingPool{
     function pauseBorrowing(address _token) public onlyOwner{
         require(token[_token].isSupported,"Token Not Supported");
         require((token[_token].borrowingAllowed),"Already Paused Borrowing");
-        token[_token] = TokenInfo(true,false,false);
+        token[_token] = TokenInfo(true,true,false);
         emit DepositStatusChanged(_token, false);
     }
     function resumeBorrowing(address _token) public onlyOwner{
@@ -90,7 +90,7 @@ contract LendingPool{
     function pauseDeposit(address _token) public onlyOwner{
         require(token[_token].isSupported,"Token Not Supported");
         require((token[_token].depositAllowed),"Already Paused Deposit");
-        token[_token] = TokenInfo(true,true,false);
+        token[_token] = TokenInfo(true,false,true);
         emit WithdrawStatusChanged(_token, false);
     }
     function resumeDeposit(address _token) public onlyOwner{
