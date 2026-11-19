@@ -67,4 +67,30 @@ contract LendingPoolTest is Test {
         deposit = lp.deposits(user,address(0));
         console.log("After Withdrawing Deposit : ", deposit);
     }
+    function testFuzz_UserWithdrawTokens(uint _amount) public {
+        // Token Approving And Depositing
+        mints = new Mint();
+        lp.addToken(address(mints));
+        vm.assume(_amount>0);
+        _amount = bound(_amount, 1, 1000000000);
+        mints.mint(user,_amount);
+        vm.prank(user);
+        mints.approve(address(lp),_amount);
+        vm.expectEmit(true, true, false, true);
+        emit LendingPool.TokenDeposited(user,address(mints),_amount);
+        vm.prank(user);
+        lp.depositToken(address(mints), _amount);
+
+        // Token Withdrawing
+        uint totalTokens = lp.deposits(user,address(mints));
+        console.log("Total Tokens : ", totalTokens);
+        vm.expectEmit(true, true, false, true);
+        emit LendingPool.TokenWithdrawed(user,address(mints),_amount);
+        vm.prank(user);
+        lp.withdrawToken(address(mints), _amount);
+        totalTokens = lp.deposits(user,address(mints));
+        assertEq(totalTokens, 0);
+        uint totalTokensBalance = lp.totalDeposits(address(mints));
+        assertEq(totalTokensBalance, 0);
+    }
 }
