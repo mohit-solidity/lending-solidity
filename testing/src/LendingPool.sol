@@ -22,10 +22,11 @@ contract LendingPool{
     event DepositStatusChanged(address indexed _token, bool status);
     event WithdrawStatusChanged(address indexed _token, bool status);
     event TokenDeposited(address indexed user, address indexed token, uint amount);
-    event TokenWithdrawed(address indexed user, address indexed token, uint amount);
+    event TokenWithdrawn(address indexed user, address indexed token, uint amount);
 
     constructor(){
         owner=msg.sender;
+        token[address(0)] = TokenInfo(true,true,true);
     }
 
     modifier onlyOwner(){
@@ -35,6 +36,9 @@ contract LendingPool{
 
     function depositETH() external payable {
         require(msg.value>0 ether,"Amount Must Be Greater Than 0 ETH");
+        TokenInfo memory t = token[address(0)];
+        require(t.isSupported,"Token Not Supported");
+        require(t.depositAllowed,"No Deposit Allowed For This Token");
         deposits[msg.sender][address(0)] += msg.value;
         totalDeposits[address(0)] += msg.value;
         emit TokenDeposited(msg.sender, address(0), msg.value);
@@ -59,7 +63,7 @@ contract LendingPool{
         totalDeposits[address(0)] -= _amount;
         (bool success,) = payable(msg.sender).call{value: _amount}("");
         require(success,"Transaction Failed Due To UnExpected Error");
-        emit TokenWithdrawed(msg.sender, address(0), _amount);
+        emit TokenWithdrawn(msg.sender, address(0), _amount);
     }
     function withdrawToken(address _token, uint _amount) external {
         require(_amount>0,"Amount Must Be Greater Than 0");
@@ -68,7 +72,7 @@ contract LendingPool{
         deposits[msg.sender][_token] -= _amount;
         totalDeposits[_token] -= _amount;
         IERC20(_token).safeTransfer(msg.sender, _amount);
-        emit TokenWithdrawed(msg.sender, _token, _amount);
+        emit TokenWithdrawn(msg.sender, _token, _amount);
     }
     function addToken(address _token) public onlyOwner{
         require(!token[_token].isSupported,"Token Already Added");

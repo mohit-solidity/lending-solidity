@@ -61,7 +61,7 @@ contract LendingPoolTest is Test {
         uint deposit = lp.deposits(user,address(0));
         console.log("Initial deposit : ",deposit);
         vm.expectEmit(true, true, false, true);
-        emit LendingPool.TokenWithdrawed(user, address(0),_amount);
+        emit LendingPool.TokenWithdrawn(user, address(0),_amount);
         vm.prank(user);
         lp.withdrawETH(_amount);
         deposit = lp.deposits(user,address(0));
@@ -85,7 +85,7 @@ contract LendingPoolTest is Test {
         uint totalTokens = lp.deposits(user,address(mints));
         console.log("Total Tokens : ", totalTokens);
         vm.expectEmit(true, true, false, true);
-        emit LendingPool.TokenWithdrawed(user,address(mints),_amount);
+        emit LendingPool.TokenWithdrawn(user,address(mints),_amount);
         vm.prank(user);
         lp.withdrawToken(address(mints), _amount);
         totalTokens = lp.deposits(user,address(mints));
