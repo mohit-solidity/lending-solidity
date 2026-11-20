@@ -11,7 +11,7 @@ contract LendingPool{
         bool isSupported;
         bool depositAllowed;
         bool borrowingAllowed;
-    }
+    
 
     mapping(address=>TokenInfo)public  token;
     mapping(address=>mapping(address=>uint)) public deposits;
